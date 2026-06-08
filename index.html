@@ -1,176 +1,161 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mandelbrot Fractal - Fullscreen White</title>
-    <style>
-        /* [CSS 영역] 화면 전체 여백 제거 및 스크롤바 방지 */
-        html, body {
-            margin: 0;
-            padding: 0;
-            width: 100%;
-            height: 100%;
-            overflow: hidden;
-            background-color: #000000; /* 완전한 검은색 배경 */
-            font-family: sans-serif;
-        }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Fractal Explorer</title>
 
-        /* 캔버스를 전체 화면으로 고정 */
-        canvas {
-            display: block;
-            width: 100vw;
-            height: 100vh;
-            cursor: crosshair;
-        }
-
-        /* 로딩 표시 스타일 (우측 하단에 심플하게 배치) */
-        #loading {
-            position: absolute;
-            bottom: 20px;
-            right: 20px;
-            background: rgba(255, 255, 255, 0.1);
-            color: #ffffff;
-            padding: 8px 16px;
-            border-radius: 20px;
-            font-size: 0.85rem;
-            letter-spacing: 1px;
-            pointer-events: none; /* 클릭 방해 금지 */
-            transition: opacity 0.2s;
-        }
-
-        /* 로딩이 끝났을 때 숨기기 위한 클래스 */
-        .hidden {
-            opacity: 0;
-        }
-    </style>
+<style>
+html, body{
+    margin:0;
+    width:100%;
+    height:100%;
+    overflow:hidden;
+    background:black;
+}
+canvas{
+    display:block;
+    cursor:crosshair;
+}
+#info{
+    position:absolute;
+    top:10px;
+    left:10px;
+    color:white;
+    font-family:Arial;
+    font-size:14px;
+}
+</style>
 </head>
+
 <body>
 
-    <canvas id="mandelbrotCanvas"></canvas>
-    <div id="loading">그리는 중...</div>
+<div id="info">
+    클릭: 확대<br>
+    우클릭: 축소<br>
+    휠: 확대/축소
+</div>
 
-    <script>
-        // [자바스크립트 영역] 화면 비율 맞춤 및 흑백 프랙탈 로직
-        document.addEventListener("DOMContentLoaded", () => {
-            const canvas = document.getElementById('mandelbrotCanvas');
-            const ctx = canvas.getContext('2d');
-            const loading = document.getElementById('loading');
+<canvas id="canvas"></canvas>
 
-            let WIDTH, HEIGHT;
-            let state = {
-                xMin: -2.0,
-                xMax: 1.0,
-                yMin: -1.2,
-                yMax: 1.2,
-                maxIterations: 150 // 기본 해상도 속도 최적화
-            };
-            let zoomFactor = 1;
+<script>
 
-            // 브라우저 창 크기에 맞게 캔버스 사이즈 조절 및 비율 맞춤
-            function resizeCanvas() {
-                WIDTH = window.innerWidth;
-                HEIGHT = window.innerHeight;
-                canvas.width = WIDTH;
-                canvas.height = HEIGHT;
+const canvas = document.getElementById("canvas");
+const ctx = canvas.getContext("2d");
 
-                // 화면 왜곡을 막기 위해 가로세로 비율(Aspect Ratio)에 맞춰 수학적 좌표축 조정
-                const viewWidth = state.xMax - state.xMin;
-                const expectedHeight = viewWidth * (HEIGHT / WIDTH);
-                const cy = (state.yMin + state.yMax) / 2;
-                
-                state.yMin = cy - expectedHeight / 2;
-                state.yMax = cy + expectedHeight / 2;
-            }
+function resize(){
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+    draw();
+}
+window.addEventListener("resize", resize);
 
-            // 망델브로 계산 점화식
-            function mandelbrot(cx, cy) {
-                let zx = 0;
-                let zy = 0;
-                let i = 0;
-                while (zx*zx + zy*zy < 4 && i < state.maxIterations) {
-                    let xtemp = zx*zx - zy*zy + cx;
-                    zy = 2*zx*zy + cy;
-                    zx = xtemp;
-                    i++;
-                }
-                return i;
-            }
+let scale = 1;
+let offsetX = 0;
+let offsetY = 0;
 
-            // 검은 배경에 하얀색으로 그리기
-            function drawMandelbrot() {
-                loading.classList.remove('hidden');
+function koch(x1,y1,x2,y2,depth){
 
-                setTimeout(() => {
-                    const imageData = ctx.createImageData(WIDTH, HEIGHT);
-                    const data = imageData.data;
+    if(depth === 0){
+        ctx.beginPath();
+        ctx.moveTo(x1,y1);
+        ctx.lineTo(x2,y2);
+        ctx.stroke();
+        return;
+    }
 
-                    for (let py = 0; py < HEIGHT; py++) {
-                        for (let px = 0; px < WIDTH; px++) {
-                            
-                            let cx = state.xMin + (px / WIDTH) * (state.xMax - state.xMin);
-                            let cy = state.yMin + (py / HEIGHT) * (state.yMax - state.yMin);
+    const dx = x2-x1;
+    const dy = y2-y1;
 
-                            let iterations = mandelbrot(cx, cy);
-                            let pixelIndex = (py * WIDTH + px) * 4;
-                            
-                            if (iterations === state.maxIterations) {
-                                // 망델브로 집합 내부: 완전한 검은색
-                                data[pixelIndex] = 0;
-                                data[pixelIndex + 1] = 0;
-                                data[pixelIndex + 2] = 0;
-                            } else {
-                                // 집합 경계면 외부: 반복 횟수가 많을수록 새하얗게 빛남
-                                let brightness = Math.pow(iterations / state.maxIterations, 0.7) * 255;
-                                
-                                data[pixelIndex] = brightness;     // R
-                                data[pixelIndex + 1] = brightness; // G
-                                data[pixelIndex + 2] = brightness; // B
-                            }
-                            data[pixelIndex + 3] = 255; // 불투명도 100%
-                        }
-                    }
+    const ax = x1 + dx/3;
+    const ay = y1 + dy/3;
 
-                    ctx.putImageData(imageData, 0, 0);
-                    loading.classList.add('hidden');
-                }, 30);
-            }
+    const bx = x1 + 2*dx/3;
+    const by = y1 + 2*dy/3;
 
-            // 클릭 시 해당 지점 중심으로 2.5배 확대
-            canvas.addEventListener('click', (e) => {
-                const rect = canvas.getBoundingClientRect();
-                const px = e.clientX - rect.left;
-                const py = e.clientY - rect.top;
+    const angle = Math.PI/3;
 
-                // 클릭한 곳의 복소수 좌표 구하기
-                const clickX = state.xMin + (px / WIDTH) * (state.xMax - state.xMin);
-                const clickY = state.yMin + (py / HEIGHT) * (state.yMax - state.yMin);
+    const px = ax + (bx-ax)*Math.cos(angle) - (by-ay)*Math.sin(angle);
+    const py = ay + (bx-ax)*Math.sin(angle) + (by-ay)*Math.cos(angle);
 
-                // 2.5배 확대 연산
-                const newWidth = (state.xMax - state.xMin) / 2.5;
-                const newHeight = (state.yMax - state.yMin) / 2.5;
+    koch(x1,y1,ax,ay,depth-1);
+    koch(ax,ay,px,py,depth-1);
+    koch(px,py,bx,by,depth-1);
+    koch(bx,by,x2,y2,depth-1);
+}
 
-                state.xMin = clickX - newWidth / 2;
-                state.xMax = clickX + newWidth / 2;
-                state.yMin = clickY - newHeight / 2;
-                state.yMax = clickY + newHeight / 2;
-                
-                // 깊이 들어갈수록 선명도를 높이기 위해 반복수 점진적 증가
-                state.maxIterations += 35; 
+function drawSnowflake(depth){
 
-                drawMandelbrot();
-            });
+    const size = 300;
 
-            // 화면 크기가 바뀔 때를 대비한 리사이즈 이벤트
-            window.addEventListener('resize', () => {
-                resizeCanvas();
-                drawMandelbrot();
-            });
+    const h = Math.sqrt(3)*size/2;
 
-            // 최초 실행
-            resizeCanvas();
-            drawMandelbrot();
-        });
-    </script>
+    const p1 = {x:0, y:-h/2};
+    const p2 = {x:-size/2, y:h/2};
+    const p3 = {x:size/2, y:h/2};
+
+    koch(p1.x,p1.y,p2.x,p2.y,depth);
+    koch(p2.x,p2.y,p3.x,p3.y,depth);
+    koch(p3.x,p3.y,p1.x,p1.y,depth);
+}
+
+function draw(){
+
+    ctx.setTransform(1,0,0,1,0,0);
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+
+    ctx.fillStyle="black";
+    ctx.fillRect(0,0,canvas.width,canvas.height);
+
+    ctx.translate(canvas.width/2 + offsetX,
+                  canvas.height/2 + offsetY);
+
+    ctx.scale(scale,scale);
+
+    ctx.strokeStyle="white";
+    ctx.lineWidth = 1/scale;
+
+    drawSnowflake(6);
+}
+
+canvas.addEventListener("click",(e)=>{
+
+    const rect = canvas.getBoundingClientRect();
+
+    const mx = e.clientX - rect.left;
+    const my = e.clientY - rect.top;
+
+    offsetX -= (mx - canvas.width/2 - offsetX)*0.5;
+    offsetY -= (my - canvas.height/2 - offsetY)*0.5;
+
+    scale *= 2;
+
+    draw();
+});
+
+canvas.addEventListener("contextmenu",(e)=>{
+    e.preventDefault();
+
+    scale /= 2;
+
+    draw();
+});
+
+canvas.addEventListener("wheel",(e)=>{
+
+    e.preventDefault();
+
+    const factor = e.deltaY < 0 ? 1.2 : 0.8;
+
+    scale *= factor;
+
+    draw();
+
+},{passive:false});
+
+resize();
+
+</script>
+
 </body>
 </html>
