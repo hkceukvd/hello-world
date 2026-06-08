@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>수학 포트폴리오: 망델브로 프랙탈 생성기</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <header>
+        <h1>Mandelbrot Set Explorer</h1>
+        <p>수학적 반복이 만들어내는 무한한 아름다움</p>
+    </header>
+
+    <main>
+        <div class="canvas-container">
+            <canvas id="mandelbrotCanvas"></canvas>
+            <div id="loading" class="hidden">그리는 중...</div>
+        </div>
+
+        <aside class="controls">
+            <div class="info-panel">
+                <h3>현재 상태</h3>
+                <p>중심: <span id="centerCoord">(0, 0)</span></p>
+                <p>확대 배율: <span id="zoomLevel">1x</span></p>
+                <p>최대 반복: <span id="maxIterations">200</span></p>
+            </div>
+            <button id="resetBtn">초기화</button>
+            <p class="help-text">💡 Tip: 프랙탈 화면을 **클릭**하면 그 지점을 중심으로 2배 확대됩니다.</p>
+        </aside>
+    </main>
+
+    <footer>
+        <p>Created with <a href="https://github.com/[여러분의_깃허브_아이디]" target="_blank">GitHub Pages</a></p>
+    </footer>
+
+    <script src="script.js"></script>
+</body>
+</html>
